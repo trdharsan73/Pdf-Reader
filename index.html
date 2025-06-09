@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Upload & Information Extractor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #52e5e7 0%, #130cb7 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .upload-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px dashed #e3f2fd;
+            transition: all 0.3s ease;
+        }
+
+        .upload-section:hover {
+            border-color: #2196f3;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(33, 150, 243, 0.1);
+        }
+
+        .upload-area {
+            text-align: center;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: #2196f3;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2rem;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .upload-subtext {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #2196f3, #21cbf3);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(33, 150, 243, 0.3);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #4caf50, #8bc34a);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .results-section {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .results-header {
+            color: #2c3e50;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e3f2fd;
+        }
+
+        .extracted-content {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, #667eea 0%, #130cb7 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .info-card h3 {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .info-card p {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #f44336;
+            margin: 20px 0;
+        }
+
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #4caf50;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PDF Information Extractor</h1>
+            <p>Upload PDF files and extract key information automatically</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Click to upload PDF file</div>
+                <div class="upload-subtext">Or drag and drop your PDF here</div>
+            </div>
+            <input type="file" id="fileInput" accept=".pdf" />
+            
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" id="extractBtn" onclick="extractInfo()" disabled>Extract Information</button>
+                <button class="btn" id="clearBtn" onclick="clearResults()" style="background: linear-gradient(45deg, #f44336, #ff5722);">Clear</button>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">📊 Extracted Information</div>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>Document Type</h3>
+                    <p id="docType">-</p>
+                </div>
+                <div class="info-card">
+                    <h3>Total Pages</h3>
+                    <p id="pageCount">-</p>
+                </div>
+                <div class="info-card">
+                    <h3>File Size</h3>
+                    <p id="fileSize">-</p>
+                </div>
+                <div class="info-card">
+                    <h3>Processing Status</h3>
+                    <p id="status">Ready</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">📝 Extracted Text Content:</h3>
+                <div class="extracted-content" id="extractedText">
+                    <div class="loading">Processing PDF content...</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">🔍 Key Information Detected:</h3>
+                <div id="keyInfo" style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <div class="loading">Analyzing content for key information...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPdfData = null;
+        let extractedTextContent = '';
+
+        // PDF.js worker setup
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        // File input handler
+        document.getElementById('fileInput').addEventListener('change', handleFileSelect);
+
+        // Drag and drop handlers
+        const uploadArea = document.querySelector('.upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#2196f3';
+            uploadArea.style.backgroundColor = '#e3f2fd';
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#e3f2fd';
+            uploadArea.style.backgroundColor = 'transparent';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#e3f2fd';
+            uploadArea.style.backgroundColor = 'transparent';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type === 'application/pdf') {
+                document.getElementById('fileInput').files = files;
+                handleFileSelect({ target: { files: files } });
+            }
+        });
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf') {
+                showError('Please select a valid PDF file.');
+                return;
+            }
+
+            currentPdfData = file;
+            updateFileInfo(file);
+            document.getElementById('extractBtn').disabled = false;
+            
+            showSuccess(`PDF file "${file.name}" loaded successfully!`);
+        }
+
+        function updateFileInfo(file) {
+            document.getElementById('fileSize').textContent = formatFileSize(file.size);
+            document.getElementById('docType').textContent = 'PDF Document';
+            document.getElementById('status').textContent = 'Ready';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function extractInfo() {
+            if (!currentPdfData) {
+                showError('Please select a PDF file first.');
+                return;
+            }
+
+            const extractBtn = document.getElementById('extractBtn');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const resultsSection = document.getElementById('resultsSection');
+
+            extractBtn.disabled = true;
+            extractBtn.textContent = 'Extracting...';
+            progressBar.style.display = 'block';
+            resultsSection.style.display = 'block';
+
+            try {
+                // Simulate progress
+                let progress = 0;
+                const progressInterval = setInterval(() => {
+                    progress += Math.random() * 20;
+                    if (progress > 90) progress = 90;
+                    progressFill.style.width = progress + '%';
+                }, 200);
+
+                const arrayBuffer = await currentPdfData.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                document.getElementById('pageCount').textContent = pdf.numPages;
+                
+                let fullText = '';
+                
+                // Extract text from all pages
+                for (let i = 1; i <= pdf.numPages; i++) {
+                    const page = await pdf.getPage(i);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items.map(item => item.str).join(' ');
+                    fullText += `\n--- Page ${i} ---\n${pageText}\n`;
+                }
+
+                extractedTextContent = fullText;
+                
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    displayResults(fullText);
+                    extractBtn.disabled = false;
+                    extractBtn.textContent = 'Extract Information';
+                    document.getElementById('status').textContent = 'Completed';
+                }, 500);
+
+            } catch (error) {
+                console.error('Error extracting PDF:', error);
+                showError('Error extracting PDF content. Please try again.');
+                extractBtn.disabled = false;
+                extractBtn.textContent = 'Extract Information';
+                progressBar.style.display = 'none';
+            }
+        }
+
+        function displayResults(text) {
+            // Display extracted text
+            document.getElementById('extractedText').textContent = text || 'No text content found in the PDF.';
+            
+            // Analyze and display key information
+            const keyInfo = analyzeContent(text);
+            document.getElementById('keyInfo').innerHTML = keyInfo;
+        }
+
+        function analyzeContent(text) {
+            if (!text) return '<p>No content to analyze.</p>';
+
+            const analysis = [];
+            
+            // Look for common patterns
+            const emailPattern = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+            const phonePattern = /\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g;
+            const datePattern = /\b\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}\b/g;
+            const numberPattern = /\b\d+\b/g;
+
+            const emails = text.match(emailPattern) || [];
+            const phones = text.match(phonePattern) || [];
+            const dates = text.match(datePattern) || [];
+            const numbers = text.match(numberPattern) || [];
+
+            // Word count and basic stats
+            const words = text.split(/\s+/).filter(word => word.length > 0);
+            const wordCount = words.length;
+            const charCount = text.length;
+
+            analysis.push(`<strong>📊 Document Statistics:</strong><br>`);
+            analysis.push(`• Word count: ${wordCount}<br>`);
+            analysis.push(`• Character count: ${charCount}<br>`);
+            analysis.push(`• Estimated reading time: ${Math.ceil(wordCount / 200)} minutes<br><br>`);
+
+            if (emails.length > 0) {
+                analysis.push(`<strong>📧 Email addresses found:</strong><br>`);
+                emails.slice(0, 5).forEach(email => analysis.push(`• ${email}<br>`));
+                if (emails.length > 5) analysis.push(`• ... and ${emails.length - 5} more<br>`);
+                analysis.push('<br>');
+            }
+
+            if (phones.length > 0) {
+                analysis.push(`<strong>📞 Phone numbers found:</strong><br>`);
+                phones.slice(0, 5).forEach(phone => analysis.push(`• ${phone}<br>`));
+                if (phones.length > 5) analysis.push(`• ... and ${phones.length - 5} more<br>`);
+                analysis.push('<br>');
+            }
+
+            if (dates.length > 0) {
+                analysis.push(`<strong>📅 Dates found:</strong><br>`);
+                [...new Set(dates)].slice(0, 5).forEach(date => analysis.push(`• ${date}<br>`));
+                analysis.push('<br>');
+            }
+
+            // Look for potential election-related terms (based on reference URL)
+            const electionTerms = ['polling', 'booth', 'constituency', 'voter', 'election', 'candidate', 'ballot'];
+            const foundTerms = electionTerms.filter(term => 
+                text.toLowerCase().includes(term.toLowerCase())
+            );
+
+            if (foundTerms.length > 0) {
+                analysis.push(`<strong>🗳️ Election-related terms found:</strong><br>`);
+                foundTerms.forEach(term => analysis.push(`• ${term}<br>`));
+                analysis.push('<br>');
+            }
+
+            return analysis.join('');
+        }
+
+        function clearResults() {
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            document.getElementById('extractBtn').disabled = true;
+            currentPdfData = null;
+            extractedTextContent = '';
+            
+            // Reset info cards
+            document.getElementById('docType').textContent = '-';
+            document.getElementById('pageCount').textContent = '-';
+            document.getElementById('fileSize').textContent = '-';
+            document.getElementById('status').textContent = 'Ready';
+            
+            showSuccess('Results cleared. Ready for new PDF upload.');
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.querySelector('.upload-section').appendChild(errorDiv);
+            
+            setTimeout(() => {
+                errorDiv.remove();
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            document.querySelector('.upload-section').appendChild(successDiv);
+            
+            setTimeout(() => {
+                successDiv.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
