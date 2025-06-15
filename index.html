@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Upload & Information Extractor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="pdf.css">
+    <script src="pdf.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>PDF Information Extractor</h1>
+            <p>Upload PDF files and extract key information automatically</p>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📄</div>
+                <div class="upload-text">Click to upload PDF file</div>
+                <div class="upload-subtext">Or drag and drop your PDF here</div>
+            </div>
+            <input type="file" id="fileInput" accept=".pdf" />
+            
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" id="extractBtn" onclick="extractInfo()" disabled>Extract Information</button>
+                <button class="btn" id="clearBtn" onclick="clearResults()" style="background: linear-gradient(45deg, #f44336, #ff5722);">Clear</button>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">📊 Extracted Information</div>
+            
+            <div class="info-grid">
+                <div class="info-card">
+                    <h3>Document Type</h3>
+                    <p id="docType">-</p>
+                </div>
+                <div class="info-card">
+                    <h3>Total Pages</h3>
+                    <p id="pageCount">-</p>
+                </div>
+                <div class="info-card">
+                    <h3>File Size</h3>
+                    <p id="fileSize">-</p>
+                </div>
+                <div class="info-card">
+                    <h3>Processing Status</h3>
+                    <p id="status">Ready</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 30px;">
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">📝 Extracted Text Content:</h3>
+                <div class="extracted-content" id="extractedText">
+                    <div class="loading">Processing PDF content...</div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <h3 style="color: #2c3e50; margin-bottom: 15px;">🔍 Key Information Detected:</h3>
+                <div id="keyInfo" style="background: #f8f9fa; padding: 20px; border-radius: 10px;">
+                    <div class="loading">Analyzing content for key information...</div>
+                </div>
+            </div>
+        </div>
+    </div> 
+</body>
+</html>
